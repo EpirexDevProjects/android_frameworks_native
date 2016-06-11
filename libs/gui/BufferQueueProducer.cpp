@@ -193,7 +193,12 @@ status_t BufferQueueProducer::waitForFreeSlotThenRelock(const char* caller,
             const int newUndequeuedCount =
                 maxBufferCount - (dequeuedCount + 1);
             const int minUndequeuedCount =
+#ifdef STE_HARDWARE
+                // HACK: for some reason, we need to reduce min undequeue for screen recording
+                mCore->getMinUndequeuedBufferCountLocked(false);
+#else
                 mCore->getMinUndequeuedBufferCountLocked(async);
+#endif
             if (newUndequeuedCount < minUndequeuedCount) {
                 BQ_LOGE("%s: min undequeued buffer count (%d) exceeded "
                         "(dequeued=%d undequeued=%d)",
@@ -281,7 +286,9 @@ status_t BufferQueueProducer::dequeueBuffer(int *outSlot,
         if (format == 0) {
             format = mCore->mDefaultBufferFormat;
         }
-
+        if (format == 0x7FA00000) {
+            format = HAL_PIXEL_FORMAT_YCBCR42XMBN;
+        }
         // Enable the usage bits the consumer requested
         usage |= mCore->mConsumerUsageBits;
 
